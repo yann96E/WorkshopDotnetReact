@@ -3,6 +3,7 @@ import Form from "./components/Form";
 import FilterButton from "./components/FilterButton";
 import Todo from "./components/Todo";
 import { nanoid } from "nanoid";
+import {axiosInstance} from "./utils/axios";
 
 
 function usePrevious(value) {
@@ -15,23 +16,33 @@ function usePrevious(value) {
 
 const FILTER_MAP = {
   All: () => true,
-  Active: task => !task.completed,
-  Completed: task => task.completed
+  Active: task => !task.activate,
+  Completed: task => task.activate
 };
 
 const FILTER_NAMES = Object.keys(FILTER_MAP);
 
-function App(props) {
-  const [tasks, setTasks] = useState(props.tasks);
+function App() {
+  const [tasks, setTasks] = useState([]);
   const [filter, setFilter] = useState('All');
 
+  useEffect( () => {
+    (async () => {
+      const res = await axiosInstance.get("TodoList/get")
+      setTasks(res.data)
+    })();
+  })
+
   function toggleTaskCompleted(id) {
-    const updatedTasks = tasks.map(task => {
+    const updatedTasks = tasks.map(async task => {
       // if this task has the same ID as the edited task
       if (id === task.id) {
         // use object spread to make a new obkect
         // whose `completed` prop has been inverted
-        return {...task, completed: !task.completed}
+        await axiosInstance.post("TodoList/toggle", {
+          id: id
+        })
+        return {...task, completed: !task.activate}
       }
       return task;
     });
@@ -39,17 +50,23 @@ function App(props) {
   }
 
 
-  function deleteTask(id) {
+  async function deleteTask(id) {
+    await axiosInstance.post("TodoList/remove", {
+      id: id
+    })
     const remainingTasks = tasks.filter(task => id !== task.id);
     setTasks(remainingTasks);
   }
 
 
   function editTask(id, newName) {
-    const editedTaskList = tasks.map(task => {
+    const editedTaskList = tasks.map(async task => {
     // if this task has the same ID as the edited task
       if (id === task.id) {
-        //
+        await axiosInstance.post("TodoList/edit", {
+          id: id,
+          name: newName
+        })
         return {...task, name: newName}
       }
       return task;
@@ -63,7 +80,7 @@ function App(props) {
     <Todo
       id={task.id}
       name={task.name}
-      completed={task.completed}
+      active={task.active}
       key={task.id}
       toggleTaskCompleted={toggleTaskCompleted}
       deleteTask={deleteTask}
@@ -80,7 +97,10 @@ function App(props) {
     />
   ));
 
-  function addTask(name) {
+  async function addTask(name) {
+    await axiosInstance.post("TodoList/add", {
+      name
+    })
     const newTask = { id: "todo-" + nanoid(), name: name, completed: false };
     setTasks([...tasks, newTask]);
   }

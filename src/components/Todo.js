@@ -12,6 +12,7 @@ function usePrevious(value) {
 export default function Todo(props) {
   const [isEditing, setEditing] = useState(false);
   const [newName, setNewName] = useState('');
+  const [disabled, setDisabled] = useState(false);
 
   const editFieldRef = useRef(null);
   const editButtonRef = useRef(null);
@@ -69,10 +70,19 @@ export default function Todo(props) {
     <div className="stack-small">
       <div className="c-cb">
           <input
+            disabled={disabled}
             id={props.id}
             type="checkbox"
-            defaultChecked={props.completed}
-            onChange={() => props.toggleTaskCompleted(props.id)}
+            checked={props.active}
+            onChange={(e) => {
+              e.preventDefault()
+              setDisabled(true);
+              props.toggleTaskCompleted(props.id)
+              setTimeout(()=>{
+                console.log("inside timeout");
+              },10000);
+              setDisabled(false);
+            }}
           />
           <label className="todo-label" htmlFor={props.id}>
             {props.name}
